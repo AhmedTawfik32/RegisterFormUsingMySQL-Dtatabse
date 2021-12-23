@@ -4,6 +4,14 @@
  */
 package registerform;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
 
@@ -17,17 +25,30 @@ public class RegisterForm extends javax.swing.JFrame {
     /**
      * Creates new form RegisterForm
      */
+    Connection con;
+    ArrayList<Integer> deptIds = new ArrayList<>();
+    ArrayList<Integer> empIds = new ArrayList<>();
+
     public RegisterForm() {
         initComponents();
         this.setLocationRelativeTo(null);
-        
-        dtm =new DefaultTableModel();
-        
+
+        dtm = new DefaultTableModel();
+
         dtm.addColumn("Employee Name");
         dtm.addColumn("Employee Salary");
         dtm.addColumn("Employee Gender");
         dtm.addColumn("Department Name");
-        
+
+        try {
+            con = DriverManager.getConnection("jdbc:mysql://localhost:3306/Company", "root", "root");
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Connection Failed");
+        }
+
+        fillComboBox();
+
+        fillTableModel();
     }
 
     /**
@@ -55,6 +76,10 @@ public class RegisterForm extends javax.swing.JFrame {
         jScrollPane1 = new javax.swing.JScrollPane();
         tbl_show = new javax.swing.JTable();
         btn_add = new javax.swing.JButton();
+        jLabel5 = new javax.swing.JLabel();
+        btn_update = new javax.swing.JButton();
+        btn_delete = new javax.swing.JButton();
+        btn_nextFrame = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("Employee Register Form");
@@ -93,8 +118,6 @@ public class RegisterForm extends javax.swing.JFrame {
         buttonGroup1.add(rbtn_female);
         rbtn_female.setText("Female");
 
-        cbx_dept_name.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "IT", "SD", "HR" }));
-
         tbl_show.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
                 {null, null, null, null},
@@ -106,6 +129,11 @@ public class RegisterForm extends javax.swing.JFrame {
                 "Title 1", "Title 2", "Title 3", "Title 4"
             }
         ));
+        tbl_show.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                tbl_showMouseClicked(evt);
+            }
+        });
         jScrollPane1.setViewportView(tbl_show);
 
         btn_add.setBackground(new java.awt.Color(255, 255, 255));
@@ -116,39 +144,82 @@ public class RegisterForm extends javax.swing.JFrame {
             }
         });
 
+        jLabel5.setIcon(new javax.swing.ImageIcon("C:\\Users\\lapshop\\Desktop\\companyBg.PNG")); // NOI18N
+        jLabel5.setBorder(javax.swing.BorderFactory.createMatteBorder(1, 1, 1, 1, new java.awt.Color(0, 153, 153)));
+
+        btn_update.setBackground(new java.awt.Color(255, 255, 255));
+        btn_update.setText("Update");
+        btn_update.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btn_updateActionPerformed(evt);
+            }
+        });
+
+        btn_delete.setBackground(new java.awt.Color(255, 255, 255));
+        btn_delete.setText("Delete");
+        btn_delete.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btn_deleteActionPerformed(evt);
+            }
+        });
+
+        btn_nextFrame.setBackground(new java.awt.Color(255, 255, 255));
+        btn_nextFrame.setText("Next Frame");
+        btn_nextFrame.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btn_nextFrameActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
         jPanel3.setLayout(jPanel3Layout);
         jPanel3Layout.setHorizontalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel3Layout.createSequentialGroup()
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(jLabel5)
+                .addGap(88, 88, 88))
             .addGroup(jPanel3Layout.createSequentialGroup()
                 .addContainerGap()
-                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
-                    .addComponent(jScrollPane1)
-                    .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel3Layout.createSequentialGroup()
-                        .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 130, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(edt_emp_name, javax.swing.GroupLayout.PREFERRED_SIZE, 369, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel3Layout.createSequentialGroup()
-                        .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, 130, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(edt_emp_salary, javax.swing.GroupLayout.PREFERRED_SIZE, 369, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel3Layout.createSequentialGroup()
-                        .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 130, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel3Layout.createSequentialGroup()
+                        .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                            .addComponent(jScrollPane1)
+                            .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel3Layout.createSequentialGroup()
+                                .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 130, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(edt_emp_name, javax.swing.GroupLayout.PREFERRED_SIZE, 369, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel3Layout.createSequentialGroup()
+                                .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, 130, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(edt_emp_salary, javax.swing.GroupLayout.PREFERRED_SIZE, 369, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel3Layout.createSequentialGroup()
+                                .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 130, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(rbtn_male)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(rbtn_female))
+                            .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel3Layout.createSequentialGroup()
+                                .addComponent(jLabel4)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(cbx_dept_name, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+                        .addGap(0, 0, Short.MAX_VALUE))
+                    .addGroup(jPanel3Layout.createSequentialGroup()
+                        .addComponent(btn_add, javax.swing.GroupLayout.PREFERRED_SIZE, 93, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(rbtn_male)
+                        .addComponent(btn_update, javax.swing.GroupLayout.PREFERRED_SIZE, 93, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(rbtn_female))
-                    .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel3Layout.createSequentialGroup()
-                        .addComponent(jLabel4)
+                        .addComponent(btn_delete, javax.swing.GroupLayout.PREFERRED_SIZE, 93, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(cbx_dept_name, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                    .addComponent(btn_add, javax.swing.GroupLayout.PREFERRED_SIZE, 93, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addContainerGap(21, Short.MAX_VALUE))
+                        .addComponent(btn_nextFrame, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+                .addContainerGap())
         );
         jPanel3Layout.setVerticalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel3Layout.createSequentialGroup()
                 .addContainerGap()
+                .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 34, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(edt_emp_name, javax.swing.GroupLayout.PREFERRED_SIZE, 37, javax.swing.GroupLayout.PREFERRED_SIZE))
@@ -168,7 +239,11 @@ public class RegisterForm extends javax.swing.JFrame {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 423, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(btn_add, javax.swing.GroupLayout.DEFAULT_SIZE, 28, Short.MAX_VALUE)
+                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(btn_add, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(btn_update, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(btn_delete, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(btn_nextFrame, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addContainerGap())
         );
 
@@ -220,30 +295,169 @@ public class RegisterForm extends javax.swing.JFrame {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
+    private void fillComboBox() {
+
+        try {
+            PreparedStatement stmt = con.prepareStatement("select dept_id, dept_name from department");
+
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                deptIds.add(rs.getInt(1));
+                cbx_dept_name.addItem(rs.getString(2));
+            }
+
+        } catch (SQLException ex) {
+            Logger.getLogger(RegisterForm.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+    }
+
+    private void fillTableModel() {
+
+        try {
+
+            dtm.setRowCount(0);
+
+            PreparedStatement stmt = con.prepareStatement("select employee.emp_id, employee.emp_name, employee.salary, employee.gender, department.dept_name from employee, department where employee.dept_id = department.dept_id");
+
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+
+                empIds.add(rs.getInt(1));
+
+                dtm.addRow(new Object[]{rs.getString(2), rs.getDouble(3), rs.getString(4), rs.getString(5)});
+
+            }
+
+            tbl_show.setModel(dtm);
+
+        } catch (SQLException ex) {
+            Logger.getLogger(RegisterForm.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+    }
+
     private void btn_addActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_addActionPerformed
         // TODO add your handling code here:
         if (!edt_emp_name.getText().isEmpty() && !edt_emp_salary.getText().isEmpty()) {
-            String empName = edt_emp_name.getText();
-            double empSalary = Double.parseDouble(edt_emp_salary.getText());
-            String gender;
-            if (rbtn_male.isSelected()) {
-                gender = "Male";
-            } else {
-                gender = "Female";
+            try {
+                String empName = edt_emp_name.getText();
+                double empSalary = Double.parseDouble(edt_emp_salary.getText());
+                String gender;
+                if (rbtn_male.isSelected()) {
+                    gender = "Male";
+                } else {
+                    gender = "Female";
+                }
+
+                PreparedStatement stmt = con.prepareStatement("insert into employee (emp_name, salary, gender, dept_id) values (?,?,?,?)");
+
+                stmt.setString(1, empName);
+                stmt.setDouble(2, empSalary);
+                stmt.setString(3, gender);
+                stmt.setInt(4, deptIds.get(cbx_dept_name.getSelectedIndex()));
+
+                stmt.executeUpdate();
+
+                JOptionPane.showMessageDialog(this, "Added Successfully");
+
+                fillTableModel();
+
+                //JOptionPane.showMessageDialog(this, "Emp Name:" + empName + "\n Emp Salary: " + empSalary + "\nGender: " + gender + "\n Dept Name: " + deptName);
+            } catch (SQLException ex) {
+                Logger.getLogger(RegisterForm.class.getName()).log(Level.SEVERE, null, ex);
             }
-            
-            String deptName = cbx_dept_name.getSelectedItem().toString();
-            
-            //JOptionPane.showMessageDialog(this, "Emp Name:" + empName + "\n Emp Salary: " + empSalary + "\nGender: " + gender + "\n Dept Name: " + deptName);
-            
-            
-            
-            dtm.addRow(new Object[]{empName,empSalary,gender,deptName});
-            
-            tbl_show.setModel(dtm);
-            
         }
     }//GEN-LAST:event_btn_addActionPerformed
+
+    private void btn_updateActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_updateActionPerformed
+        // TODO add your handling code here:
+
+        if (!edt_emp_name.getText().isEmpty() && !edt_emp_salary.getText().isEmpty()) {
+            try {
+                String empName = edt_emp_name.getText();
+                double empSalary = Double.parseDouble(edt_emp_salary.getText());
+                String gender;
+                if (rbtn_male.isSelected()) {
+                    gender = "Male";
+                } else {
+                    gender = "Female";
+                }
+
+                PreparedStatement stmt = con.prepareStatement("update employee set emp_name=?, salary=?, gender=?, dept_id=? where emp_id = ?");
+
+                stmt.setString(1, empName);
+                stmt.setDouble(2, empSalary);
+                stmt.setString(3, gender);
+                stmt.setInt(4, deptIds.get(cbx_dept_name.getSelectedIndex()));
+                stmt.setInt(5, empIds.get(tbl_show.getSelectedRow()));
+
+                stmt.executeUpdate();
+
+                JOptionPane.showMessageDialog(this, "Updated Successfully");
+
+                fillTableModel();
+
+                //JOptionPane.showMessageDialog(this, "Emp Name:" + empName + "\n Emp Salary: " + empSalary + "\nGender: " + gender + "\n Dept Name: " + deptName);
+            } catch (SQLException ex) {
+                Logger.getLogger(RegisterForm.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+
+    }//GEN-LAST:event_btn_updateActionPerformed
+
+    private void tbl_showMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_tbl_showMouseClicked
+        // TODO add your handling code here:
+
+        edt_emp_name.setText(tbl_show.getValueAt(tbl_show.getSelectedRow(), 0).toString());
+        edt_emp_salary.setText(tbl_show.getValueAt(tbl_show.getSelectedRow(), 1).toString());
+
+        if (tbl_show.getValueAt(tbl_show.getSelectedRow(), 2) != null) {
+
+            if (tbl_show.getValueAt(tbl_show.getSelectedRow(), 2).toString().equals("Female")) {
+                rbtn_female.setSelected(true);
+            } else {
+                rbtn_male.setSelected(true);
+            }
+
+        }
+
+        cbx_dept_name.setSelectedItem(tbl_show.getValueAt(tbl_show.getSelectedRow(), 3));
+
+
+    }//GEN-LAST:event_tbl_showMouseClicked
+
+    private void btn_deleteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_deleteActionPerformed
+        try {
+            // TODO add your handling code here:
+
+            PreparedStatement stmt = con.prepareStatement("delete from employee where emp_id = ?");
+
+            stmt.setInt(1, empIds.get(tbl_show.getSelectedRow()));
+
+            stmt.executeUpdate();
+
+            JOptionPane.showMessageDialog(this, "Deleted Successfully");
+
+            fillTableModel();
+
+        } catch (SQLException ex) {
+            Logger.getLogger(RegisterForm.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+
+    }//GEN-LAST:event_btn_deleteActionPerformed
+
+    private void btn_nextFrameActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_nextFrameActionPerformed
+        // TODO add your handling code here:
+        
+        this.dispose();
+        
+        new NextFrame().setVisible(true);
+        
+    }//GEN-LAST:event_btn_nextFrameActionPerformed
 
     /**
      * @param args the command line arguments
@@ -282,6 +496,9 @@ public class RegisterForm extends javax.swing.JFrame {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btn_add;
+    private javax.swing.JButton btn_delete;
+    private javax.swing.JButton btn_nextFrame;
+    private javax.swing.JButton btn_update;
     private javax.swing.ButtonGroup buttonGroup1;
     private javax.swing.JComboBox<String> cbx_dept_name;
     private javax.swing.JTextField edt_emp_name;
@@ -290,6 +507,7 @@ public class RegisterForm extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
+    private javax.swing.JLabel jLabel5;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
